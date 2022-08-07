@@ -123,14 +123,21 @@ void readBME(struct sensorData *environment)
 {
   if (status.bme)
   {
-#ifndef METRIC
-    bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Fahrenheit, BME280::PresUnit_inHg);
-    environment->barometricPressure += ALTITUDE_OFFSET_IMPERIAL;
-#else
-    bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
-    environment->barometricPressure += ALTITUDE_OFFSET_METRIC;
-#endif
-
+    #ifndef METRIC
+      #ifdef BMP280SHT3xEnabled
+          bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Fahrenheit, BME280::PresUnit_inHg);
+          environment->humidity = sht31.readHumidity();
+      #else
+          bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Fahrenheit, BME280::PresUnit_inHg);
+      #endif
+    #else
+      #ifdef BMP280SHT3xEnabled
+          bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
+          environment->humidity = sht31.readHumidity();
+      #else
+          bme.read(environment->barometricPressure, environment->BMEtemperature, environment->humidity, BME280::TempUnit_Celsius, BME280::PresUnit_Pa);
+      #endif
+    #endif
   }
   else
   {
@@ -157,8 +164,10 @@ void readUV(struct sensorData *environment)
     environment->UVIndex = -1;
   }
   MonPrintf("UV Index: %f\n", environment->UVIndex);
+  #ifndef BMP280SHT3xEnabled
   MonPrintf("Vis: %i\n", uv.readVisible());
   MonPrintf("IR: %i\n", uv.readIR());
+  #endif
 }
 
 void readESPCoreTemp(struct sensorData *environment)

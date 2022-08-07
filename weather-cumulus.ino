@@ -1,51 +1,17 @@
-// weather station v3.0 code that fully supports deep sleep modes
-// code rewrite by James Hughes - KB0HHM
-// jhughes1010@gmail.com
+// weather station v3.1 code that fully supports CumulusMX
+// code rewrite by Robert Bain - Jimmy062006
+//
 //
 //Supporting the following project: https://www.instructables.com/Solar-Powered-WiFi-Weather-Station-V30/
 
-#define VERSION "1.3.2"
+#define VERSION "1.0.0"
 
 //=============================================
 // Changelog
 //=============================================
 /*
- *  v1.3.2
- *      1. I2C OLED diagnostics added (if needed)
- *      2. 
-    v1.3.1
-        1. Corrects missing quotes on #define VERSION statement
-        2. max retry if 15 connect attempts added and then we bail on WiFi connect. This prevents us from hitting the WDT limit and rebooting
-
-
-    v1.3 supports 24h rainfall data, not 23h
-        supports current 60 min rainfall, not
-        current "hour" that looses data at top
-        of the hour.
-
-        lowBattery flag fix and multiplies wake time by 10
-        when battery is < 15 % remaining
-
-        Alternate pinout for Thomas Krebs PCB
-        design that does not use devkit ESP32
-
-        remove esp_deep_sleep.h as it is not needed
-
-        modified the #include to clearly discern system includes <file.h>
-
-        uv.begin added to sensorEnable()
-
-        renamed historicalData to rainfallData and added rainfallInterval as an additional mqtt topic for non historical accumulation
-
-        addred rssi topic on mqtt publish listing
-
-        clearer reporting to console on sensor.begin statuses. Program should run with no sensors now and not hang
-
-
-
-
-
-
+      v1.0
+          1. Added New SHT31 and VEML6070 Due to component sourcing issues. Allows fake BME280's to work or BMP280's
 
 
 */
@@ -75,6 +41,8 @@
 //OLED diagnostics board
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_SHT31.h>
+#include "Adafruit_VEML6070.h"
 
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
@@ -174,7 +142,12 @@ RTC_DATA_ATTR unsigned int elapsedTime = 0;
 BH1750 lightMeter(0x23);
 #endif
 BME280I2C bme;
-Adafruit_SI1145 uv = Adafruit_SI1145();
+#ifdef BMP280SHT3xEnabled
+  Adafruit_VEML6070 uv = Adafruit_VEML6070();
+  Adafruit_SHT31 sht31 = Adafruit_SHT31();
+#else
+  Adafruit_SI1145 uv = Adafruit_SI1145();
+#endif  
 bool lowBattery = false;
 bool WiFiEnable = false;
 struct sensorStatus status;
@@ -407,7 +380,16 @@ void sensorEnable(void)
 {
   status.temperature = Wire.begin();
   status.bme = bme.begin();
+#ifdef BMP280SHT3xEnabled
+  sht31.begin(0x44);
+  uv.begin(VEML6070_1_T);
+  if (uv.readUV() != 65535)
+  {
+    status.uv = 1;
+  }
+#else
   status.uv = uv.begin();
+#endif
 #ifdef BH1750Enable
   status.lightMeter = lightMeter.begin();
 #endif

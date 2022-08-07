@@ -63,6 +63,11 @@ const char mainTopic[20] = "MainTopic/";
 #define BH1750Enable
 
 //===========================================
+//BMP280 + SHT3X Enable
+//===========================================
+#define BMP280SHT3xEnabled
+
+//===========================================
 //Anemometer Calibration
 //===========================================
 //I see 2 switch pulls to GND per revolation. Not sure what others see
